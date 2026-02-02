@@ -186,22 +186,40 @@ export const budgetService = {
 
   async deleteBudget(id: string): Promise<void> {
     try {
-      console.log('Service: Deletando orçamento ID:', id);
+      console.log('=== Service: INICIANDO DELETE ===');
+      console.log('ID recebido:', id);
+      console.log('Tipo do ID:', typeof id);
       
-      const { data, error } = await supabase
+      // Primeiro, verificar se o orçamento existe
+      const { data: existingBudget, error: findError } = await supabase
+        .from('budgets')
+        .select('id, client_name')
+        .eq('id', id)
+        .single();
+      
+      if (findError) {
+        console.error('Service: Orçamento não encontrado:', findError);
+        throw new Error(`Orçamento não encontrado: ${findError.message}`);
+      }
+      
+      console.log('Service: Orçamento encontrado:', existingBudget);
+      
+      // Agora deletar
+      const { error: deleteError } = await supabase
         .from('budgets')
         .delete()
-        .eq('id', id)
-        .select();
+        .eq('id', id);
 
-      if (error) {
-        console.error('Service: Erro ao deletar:', error);
-        throw new Error(`Falha ao deletar: ${error.message}`);
+      if (deleteError) {
+        console.error('Service: Erro ao deletar:', deleteError);
+        throw new Error(`Falha ao deletar: ${deleteError.message}`);
       }
 
-      console.log('Service: Orçamento deletado:', data);
-    } catch (error) {
-      console.error('Service: Exceção ao deletar:', error);
+      console.log('=== Service: DELETE CONCLUÍDO COM SUCESSO ===');
+    } catch (error: any) {
+      console.error('=== Service: EXCEÇÃO AO DELETAR ===');
+      console.error('Erro completo:', error);
+      console.error('Mensagem:', error?.message);
       throw error;
     }
   },
