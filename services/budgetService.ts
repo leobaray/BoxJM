@@ -186,17 +186,22 @@ export const budgetService = {
 
   async deleteBudget(id: string): Promise<void> {
     try {
-      const { error } = await supabase
+      console.log('Service: Deletando orçamento ID:', id);
+      
+      const { data, error } = await supabase
         .from('budgets')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .select();
 
       if (error) {
-        console.error('Error deleting budget:', error);
-        throw error;
+        console.error('Service: Erro ao deletar:', error);
+        throw new Error(`Falha ao deletar: ${error.message}`);
       }
+
+      console.log('Service: Orçamento deletado:', data);
     } catch (error) {
-      console.error('Error deleting budget:', error);
+      console.error('Service: Exceção ao deletar:', error);
       throw error;
     }
   },

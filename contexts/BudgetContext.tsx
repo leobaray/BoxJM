@@ -43,8 +43,16 @@ export function BudgetProvider({ children }: { children: ReactNode }) {
   };
 
   const deleteBudget = async (id: string) => {
-    await budgetService.deleteBudget(id);
-    setBudgets(prev => prev.filter(b => b.id !== id));
+    try {
+      console.log('Context: Deletando orçamento:', id);
+      await budgetService.deleteBudget(id);
+      console.log('Context: Atualizando lista de orçamentos');
+      setBudgets(prev => prev.filter(b => b.id !== id));
+      console.log('Context: Lista atualizada');
+    } catch (error) {
+      console.error('Context: Erro ao deletar:', error);
+      throw error;
+    }
   };
 
   useEffect(() => {

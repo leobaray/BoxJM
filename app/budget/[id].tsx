@@ -40,21 +40,30 @@ export default function BudgetDetailScreen() {
   };
 
   const handleDelete = () => {
+    if (!budget) {
+      Alert.alert('Erro', 'Orçamento não encontrado');
+      return;
+    }
+
     Alert.alert(
       'Excluir orçamento',
-      'Tem certeza que deseja excluir este orçamento?',
+      'Tem certeza que deseja excluir este orçamento? Esta ação não pode ser desfeita.',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
           text: 'Excluir',
           style: 'destructive',
           onPress: async () => {
-            if (!budget) return;
             try {
+              console.log('Deletando orçamento:', budget.id);
               await deleteBudget(budget.id);
-              router.back();
+              console.log('Orçamento deletado com sucesso');
+              Alert.alert('Sucesso', 'Orçamento excluído', [
+                { text: 'OK', onPress: () => router.back() }
+              ]);
             } catch (error) {
-              Alert.alert('Erro', 'Não foi possível excluir o orçamento');
+              console.error('Erro ao deletar orçamento:', error);
+              Alert.alert('Erro', `Não foi possível excluir o orçamento: ${error}`);
             }
           }
         }
