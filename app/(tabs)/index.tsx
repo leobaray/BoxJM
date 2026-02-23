@@ -1,10 +1,16 @@
-import React, { useState, useMemo } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, ActivityIndicator, TextInput, ScrollView } from 'react-native';
+import React, { useState, useMemo, useCallback } from 'react';
+import {
+  View, Text, SectionList, StyleSheet, TouchableOpacity,
+  ActivityIndicator, TextInput, ScrollView
+} from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useBudgets } from '@/hooks/useBudgets';
 import { BudgetCard } from '@/components/ui/BudgetCard';
 import { useRouter } from 'expo-router';
+import { Budget } from '@/types/budget';
+
+/* ─── Constants ─────────────────────────────────────────────────────────── */
 
 const STATUS_FILTERS = [
   { key: null,        label: 'Todos',    color: '#ef4444' },
@@ -14,25 +20,101 @@ const STATUS_FILTERS = [
   { key: 'completed', label: 'Concluído',color: '#8b5cf6' },
 ] as const;
 
+type SortOption = 'recent' | 'value' | 'status';
+
+const SORT_LABELS: Record<SortOption, string> = {
+  recent: 'Mais recente',
+  value:  'Maior valor',
+  status: 'Status',
+};
+
+const SORT_OPTIONS: SortOption[] = ['recent', 'value', 'status'];
+
+/* ─── Helpers ───────────────────────────────────────────────────────────── */
+
+function getDateGroup(dateStr: string): string {
+  const today     = new Date(); today.setHours(0, 0, 0, 0);
+  const yesterday = new Date(today); yesterday.setDate(yesterday.getDate() - 1);
+  const weekAgo   = new Date(today); weekAgo.setDate(weekAgo.getDate() - 7);
+
+  const d = new Date(dateStr); d.setHours(0, 0, 0, 0);
+  const t = d.getTime();
+
+  if (t === today.getTime())          return 'Hoje';
+  if (t === yesterday.getTime())      return 'Ontem';
+  if (t >= weekAgo.getTime())         return 'Esta semana';
+  return 'Mais antigos';
+}
+
+const DATE_GROUP_ORDER = ['Hoje', 'Ontem', 'Esta semana', 'Mais antigos'];
+
+/* ─── Component ─────────────────────────────────────────────────────────── */
+
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { budgets, loading, refreshBudgets } = useBudgets();
   const router = useRouter();
 
-  const [search, setSearch] = useState('');
+  const [search,       setSearch]       = useState('');
   const [activeStatus, setActiveStatus] = useState<string | null>(null);
+  const [sortOrder,    setSortOrder]    = useState<SortOption>('recent');
+  const [refreshing,   setRefreshing]   = useState(false);
 
-  const filteredBudgets = useMemo(() => {
-    return budgets.filter(b => {
-      const q = search.trim().toLowerCase();
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refreshBudgets();
+    setRefreshing(false);
+  }, [refreshBudgets]);
+
+  const cycleSortOrder = () => {
+    setSortOrder(prev => {
+      const idx = SORT_OPTIONS.indexOf(prev);
+      return SORT_OPTIONS[(idx + 1) % SORT_OPTIONS.length];
+    });
+  };
+
+  /* Filter → Sort → Section */
+  const processedBudgets = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const filtered = budgets.filter(b => {
       const matchSearch = !q ||
         b.clientName.toLowerCase().includes(q) ||
         `${b.vehicleBrand} ${b.vehicleModel}`.toLowerCase().includes(q);
       const matchStatus = !activeStatus || b.status === activeStatus;
       return matchSearch && matchStatus;
     });
-  }, [budgets, search, activeStatus]);
 
+    return [...filtered].sort((a, b) => {
+      switch (sortOrder) {
+        case 'recent': return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        case 'value':  return b.total - a.total;
+        case 'status': {
+          const order = { draft: 0, sent: 1, approved: 2, completed: 3 };
+          return order[a.status] - order[b.status];
+        }
+      }
+    });
+  }, [budgets, search, activeStatus, sortOrder]);
+
+  const sections = useMemo(() => {
+    // Agrupamento por data só faz sentido quando ordenado por data
+    if (sortOrder !== 'recent') {
+      return [{ title: null as string | null, data: processedBudgets }];
+    }
+
+    const groups: Record<string, Budget[]> = {};
+    processedBudgets.forEach(b => {
+      const group = getDateGroup(b.createdAt);
+      if (!groups[group]) groups[group] = [];
+      groups[group].push(b);
+    });
+
+    return DATE_GROUP_ORDER
+      .filter(g => groups[g]?.length)
+      .map(g => ({ title: g as string | null, data: groups[g] }));
+  }, [processedBudgets, sortOrder]);
+
+  /* ── Loading ── */
   if (loading) {
     return (
       <View style={styles.centered}>
@@ -41,28 +123,32 @@ export default function HomeScreen() {
     );
   }
 
-  const hasFiltersActive = !!search.trim() || !!activeStatus;
-  const noResults = budgets.length > 0 && filteredBudgets.length === 0;
+  const isFiltered   = !!search.trim() || !!activeStatus;
+  const noResults    = budgets.length > 0 && processedBudgets.length === 0;
+  const counterLabel = isFiltered && processedBudgets.length !== budgets.length
+    ? `${processedBudgets.length} de ${budgets.length}`
+    : `${budgets.length} ${budgets.length === 1 ? 'orçamento' : 'orçamentos'}`;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Header */}
+
+      {/* ── Header ── */}
       <View style={styles.header}>
         <View>
           <Text style={styles.brandName}>BOX JM</Text>
           <Text style={styles.title}>Orçamentos</Text>
           <Text style={styles.subtitle}>Gerencie seus trabalhos</Text>
         </View>
-        <TouchableOpacity style={styles.refreshButton} onPress={refreshBudgets}>
-          <MaterialCommunityIcons name="refresh" size={24} color="#ef4444" />
+        <TouchableOpacity style={styles.refreshButton} onPress={handleRefresh}>
+          <MaterialCommunityIcons name="refresh" size={22} color="#ef4444" />
         </TouchableOpacity>
       </View>
 
-      {/* Search + Filters — só exibe se houver orçamentos */}
+      {/* ── Search + Filters ── */}
       {budgets.length > 0 && (
         <View style={styles.searchSection}>
           <View style={styles.searchInputWrapper}>
-            <MaterialCommunityIcons name="magnify" size={20} color="#6b7280" />
+            <MaterialCommunityIcons name="magnify" size={19} color="#6b7280" />
             <TextInput
               style={styles.searchInput}
               placeholder="Buscar cliente ou veículo..."
@@ -71,8 +157,11 @@ export default function HomeScreen() {
               onChangeText={setSearch}
             />
             {search.length > 0 && (
-              <TouchableOpacity onPress={() => setSearch('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <MaterialCommunityIcons name="close-circle" size={18} color="#6b7280" />
+              <TouchableOpacity
+                onPress={() => setSearch('')}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <MaterialCommunityIcons name="close-circle" size={17} color="#6b7280" />
               </TouchableOpacity>
             )}
           </View>
@@ -87,10 +176,7 @@ export default function HomeScreen() {
               return (
                 <TouchableOpacity
                   key={String(filter.key)}
-                  style={[
-                    styles.filterPill,
-                    isActive && { backgroundColor: filter.color, borderColor: filter.color }
-                  ]}
+                  style={[styles.filterPill, isActive && { backgroundColor: filter.color, borderColor: filter.color }]}
                   onPress={() => setActiveStatus(isActive ? null : filter.key)}
                   activeOpacity={0.7}
                 >
@@ -104,7 +190,18 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* Lista vazia (sem nenhum orçamento) */}
+      {/* ── Sort + Counter ── */}
+      {budgets.length > 0 && (
+        <View style={styles.controlsRow}>
+          <TouchableOpacity style={styles.sortButton} onPress={cycleSortOrder} activeOpacity={0.7}>
+            <MaterialCommunityIcons name="sort-variant" size={15} color="#9ca3af" />
+            <Text style={styles.sortText}>{SORT_LABELS[sortOrder]}</Text>
+          </TouchableOpacity>
+          <Text style={styles.countText}>{counterLabel}</Text>
+        </View>
+      )}
+
+      {/* ── Empty (sem nenhum orçamento) ── */}
       {budgets.length === 0 ? (
         <View style={styles.emptyState}>
           <MaterialCommunityIcons name="file-document-outline" size={80} color="#374151" />
@@ -119,13 +216,15 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-      /* Sem resultado de filtro */
+      /* ── Sem resultado de filtro ── */
       ) : noResults ? (
         <View style={styles.emptyState}>
           <MaterialCommunityIcons name="magnify-close" size={64} color="#374151" />
           <Text style={styles.emptyTitle}>Nenhum resultado</Text>
           <Text style={styles.emptyText}>
-            {search.trim() ? `Nenhum orçamento encontrado para "${search.trim()}"` : 'Nenhum orçamento com este status'}
+            {search.trim()
+              ? `Nenhum orçamento para "${search.trim()}"`
+              : 'Nenhum orçamento com este status'}
           </Text>
           <TouchableOpacity
             style={styles.clearButton}
@@ -135,19 +234,33 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-      /* Lista */
+      /* ── Lista com seções ── */
       ) : (
-        <FlatList
-          data={filteredBudgets}
+        <SectionList
+          sections={sections}
           keyExtractor={item => item.id}
           renderItem={({ item }) => <BudgetCard budget={item} />}
+          renderSectionHeader={({ section }) => {
+            if (!section.title) return null;
+            return (
+              <View style={styles.dateHeader}>
+                <Text style={styles.dateHeaderText}>{section.title}</Text>
+                <View style={styles.dateHeaderLine} />
+              </View>
+            );
+          }}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          onRefresh={handleRefresh}
+          refreshing={refreshing}
+          stickySectionHeadersEnabled={false}
         />
       )}
     </View>
   );
 }
+
+/* ─── Styles ─────────────────────────────────────────────────────────────── */
 
 const styles = StyleSheet.create({
   container: {
@@ -160,6 +273,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#0a0a0a'
   },
+
+  /* Header */
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -242,9 +357,56 @@ const styles = StyleSheet.create({
     color: '#ffffff'
   },
 
+  /* Sort + Counter */
+  controlsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1f1f1f'
+  },
+  sortButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5
+  },
+  sortText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#9ca3af'
+  },
+  countText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#4b5563'
+  },
+
   /* List */
   listContent: {
     padding: 20
+  },
+
+  /* Date section headers */
+  dateHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 12,
+    marginTop: 4
+  },
+  dateHeaderText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#6b7280',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8
+  },
+  dateHeaderLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#1f1f1f'
   },
 
   /* Empty / No Results */

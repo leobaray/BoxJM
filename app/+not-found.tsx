@@ -1,74 +1,90 @@
-/*
- * @Description: 
- */
-
-// Powered by OnSpace.AI
-import { MaterialIcons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import React from 'react';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function NotFoundScreen() {
+  const insets = useSafeAreaInsets();
+
   return (
-    <SafeAreaView style={styles.container}>
-      <LinearGradient
-        colors={['#0a0a0a', '#1a1a1a']}
-        style={StyleSheet.absoluteFillObject}
-      />
-      
+    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <View style={styles.content}>
-        <MaterialIcons name="photo-camera" size={80} color="#FFD700" />
-        <Text style={styles.title}>Page Not Found</Text>
+        <View style={styles.iconWrapper}>
+          <MaterialCommunityIcons name="file-search-outline" size={52} color="#ef4444" />
+        </View>
+        <Text style={styles.brand}>BOX JM</Text>
+        <Text style={styles.title}>Página não encontrada</Text>
         <Text style={styles.message}>
-          The moment you're looking for seems to have been lost in the shadows.
+          Esta rota não existe ou foi removida.
         </Text>
-        
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.homeButton}
           onPress={() => router.push('/')}
+          activeOpacity={0.8}
         >
-          <Text style={styles.homeButtonText}>Return Home</Text>
+          <MaterialCommunityIcons name="arrow-left" size={18} color="#ffffff" />
+          <Text style={styles.homeButtonText}>Voltar ao início</Text>
         </TouchableOpacity>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0a0a',
+    backgroundColor: '#0a0a0a'
   },
   content: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    paddingHorizontal: 40
+  },
+  iconWrapper: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: '#1f1f1f',
+    borderWidth: 1,
+    borderColor: '#2f2f2f',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24
+  },
+  brand: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#ef4444',
+    letterSpacing: 2,
+    marginBottom: 8
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginTop: 20,
-    marginBottom: 10,
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#ffffff',
+    marginBottom: 10
   },
   message: {
-    fontSize: 16,
-    color: '#CCCCCC',
+    fontSize: 14,
+    color: '#9ca3af',
     textAlign: 'center',
-    marginBottom: 40,
     lineHeight: 22,
+    marginBottom: 32
   },
   homeButton: {
-    backgroundColor: '#FFD700',
-    paddingHorizontal: 30,
-    paddingVertical: 15,
-    borderRadius: 25,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#ef4444',
+    paddingHorizontal: 24,
+    paddingVertical: 13,
+    borderRadius: 12
   },
   homeButtonText: {
-    color: '#0a0a0a',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#ffffff'
+  }
 });

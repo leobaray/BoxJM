@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Platform } from 'react-native';
+import { Platform, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function TabLayout() {
@@ -17,20 +17,20 @@ export default function TabLayout() {
           borderTopColor: '#1f1f1f',
           borderTopWidth: 1,
           height: Platform.select({
-            ios: insets.bottom + 60,
-            android: insets.bottom + 60,
-            default: 70
+            ios: insets.bottom + 68,
+            android: insets.bottom + 68,
+            default: 72
           }),
-          paddingTop: 8,
+          paddingTop: 10,
           paddingBottom: Platform.select({
             ios: insets.bottom + 8,
             android: insets.bottom + 8,
-            default: 8
+            default: 10
           }),
           paddingHorizontal: 16
         },
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: '600',
           marginTop: 4
         }
@@ -46,20 +46,34 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="services"
+        name="new-budget"
         options={{
-          title: 'Serviços',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="tools" size={size} color={color} />
+          title: 'Novo',
+          tabBarIcon: () => (
+            <View style={{
+              width: 46,
+              height: 46,
+              borderRadius: 23,
+              backgroundColor: '#ef4444',
+              justifyContent: 'center',
+              alignItems: 'center',
+              shadowColor: '#ef4444',
+              shadowOffset: { width: 0, height: 3 },
+              shadowOpacity: 0.45,
+              shadowRadius: 6,
+              elevation: 8,
+            }}>
+              <MaterialCommunityIcons name="plus" size={26} color="#ffffff" />
+            </View>
           )
         }}
       />
       <Tabs.Screen
-        name="new-budget"
+        name="services"
         options={{
-          title: 'Novo',
+          title: 'Catálogo',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="plus-circle" size={size} color={color} />
+            <MaterialCommunityIcons name="tools" size={size} color={color} />
           )
         }}
       />

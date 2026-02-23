@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, TextInput, ScrollView, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { useBudgets } from '@/hooks/useBudgets';
 import { useCatalog } from '@/hooks/useCatalog';
 import { VehicleTypeSelector } from '@/components/ui/VehicleTypeSelector';
@@ -20,19 +20,36 @@ export default function NewBudgetScreen() {
   const { budgets, createBudget, updateBudget } = useBudgets();
   const { services } = useCatalog();
 
-  const [clientName, setClientName]       = useState('');
-  const [clientPhone, setClientPhone]     = useState('');
-  const [vehicleBrand, setVehicleBrand]   = useState('');
-  const [vehicleModel, setVehicleModel]   = useState('');
-  const [vehicleType, setVehicleType]     = useState<VehicleType>('medium');
-  const [selectedServices, setSelectedServices] = useState<Map<string, number>>(new Map());
-  const [customPrices, setCustomPrices]   = useState<Map<string, number>>(new Map());
-  const [notes, setNotes]                 = useState('');
-  const [saving, setSaving]               = useState(false);
+  const [clientName,       setClientName]       = useState('');
+  const [clientPhone,      setClientPhone]       = useState('');
+  const [vehicleBrand,     setVehicleBrand]      = useState('');
+  const [vehicleModel,     setVehicleModel]      = useState('');
+  const [vehicleType,      setVehicleType]       = useState<VehicleType>('medium');
+  const [selectedServices, setSelectedServices]  = useState<Map<string, number>>(new Map());
+  const [customPrices,     setCustomPrices]      = useState<Map<string, number>>(new Map());
+  const [notes,            setNotes]             = useState('');
+  const [saving,           setSaving]            = useState(false);
 
   const isEditMode  = !!id;
   const screenTitle = isEditMode ? 'Editar Orçamento' : 'Novo Orçamento';
 
+  /* Reseta o form toda vez que a aba ganha foco em modo criação */
+  useFocusEffect(
+    React.useCallback(() => {
+      if (!id) {
+        setClientName('');
+        setClientPhone('');
+        setVehicleBrand('');
+        setVehicleModel('');
+        setVehicleType('medium');
+        setSelectedServices(new Map());
+        setCustomPrices(new Map());
+        setNotes('');
+      }
+    }, [id])
+  );
+
+  /* Carrega dados ao editar */
   useEffect(() => {
     if (isEditMode && id) {
       const budget = budgets.find(b => b.id === id);
@@ -59,25 +76,20 @@ export default function NewBudgetScreen() {
   const toggleService = (serviceId: string) => {
     setSelectedServices(prev => {
       const next = new Map(prev);
-      if (next.has(serviceId)) { next.delete(serviceId); }
-      else                     { next.set(serviceId, 1); }
+      if (next.has(serviceId)) next.delete(serviceId);
+      else                     next.set(serviceId, 1);
       return next;
     });
   };
 
   const updatePrice = (serviceId: string, price: number) => {
-    setCustomPrices(prev => {
-      const next = new Map(prev);
-      next.set(serviceId, price);
-      return next;
-    });
+    setCustomPrices(prev => { const next = new Map(prev); next.set(serviceId, price); return next; });
   };
 
   const updateQuantity = (serviceId: string, change: number) => {
     setSelectedServices(prev => {
-      const next     = new Map(prev);
-      const current  = next.get(serviceId) || 1;
-      next.set(serviceId, Math.max(1, current + change));
+      const next = new Map(prev);
+      next.set(serviceId, Math.max(1, (next.get(serviceId) || 1) + change));
       return next;
     });
   };
@@ -93,10 +105,10 @@ export default function NewBudgetScreen() {
 
   const handleSave = async () => {
     if (saving) return;
-    if (!clientName.trim())  { Alert.alert('Campo obrigatório', 'Preencha o nome do cliente');     return; }
-    if (!vehicleBrand.trim()){ Alert.alert('Campo obrigatório', 'Preencha a marca do veículo');    return; }
-    if (!vehicleModel.trim()){ Alert.alert('Campo obrigatório', 'Preencha o modelo do veículo');   return; }
-    if (selectedServices.size === 0) { Alert.alert('Selecione serviços', 'Adicione pelo menos um serviço ao orçamento'); return; }
+    if (!clientName.trim())           { Alert.alert('Campo obrigatório', 'Preencha o nome do cliente');     return; }
+    if (!vehicleBrand.trim())         { Alert.alert('Campo obrigatório', 'Preencha a marca do veículo');    return; }
+    if (!vehicleModel.trim())         { Alert.alert('Campo obrigatório', 'Preencha o modelo do veículo');   return; }
+    if (selectedServices.size === 0)  { Alert.alert('Selecione serviços', 'Adicione pelo menos um serviço ao orçamento'); return; }
 
     setSaving(true);
     try {
@@ -122,16 +134,15 @@ export default function NewBudgetScreen() {
   };
 
   const { subtotal, multiplier, total } = calculateTotal();
-
   const vehicleLabel = VEHICLE_MULTIPLIERS.find(v => v.type === vehicleType)?.label ?? vehicleType;
 
-  const servicesByCategory = useMemo(() => {
-    return services.reduce((acc, service) => {
+  const servicesByCategory = useMemo(() =>
+    services.reduce((acc, service) => {
       if (!acc[service.category]) acc[service.category] = [];
       acc[service.category].push(service);
       return acc;
-    }, {} as Record<string, typeof services>);
-  }, [services]);
+    }, {} as Record<string, typeof services>)
+  , [services]);
 
   const selectedCount = selectedServices.size;
   const servicesSectionTitle = selectedCount > 0
@@ -159,51 +170,23 @@ export default function NewBudgetScreen() {
         {/* Dados do Cliente */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Dados do Cliente</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Nome do cliente"
-            placeholderTextColor="#6b7280"
-            value={clientName}
-            onChangeText={setClientName}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Telefone"
-            placeholderTextColor="#6b7280"
-            value={clientPhone}
-            onChangeText={setClientPhone}
-            keyboardType="phone-pad"
-          />
+          <TextInput style={styles.input} placeholder="Nome do cliente" placeholderTextColor="#6b7280" value={clientName} onChangeText={setClientName} />
+          <TextInput style={styles.input} placeholder="Telefone" placeholderTextColor="#6b7280" value={clientPhone} onChangeText={setClientPhone} keyboardType="phone-pad" />
         </View>
 
         {/* Veículo */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Veículo</Text>
           <View style={styles.row}>
-            <TextInput
-              style={[styles.input, styles.halfInput]}
-              placeholder="Marca"
-              placeholderTextColor="#6b7280"
-              value={vehicleBrand}
-              onChangeText={setVehicleBrand}
-            />
-            <TextInput
-              style={[styles.input, styles.halfInput]}
-              placeholder="Modelo"
-              placeholderTextColor="#6b7280"
-              value={vehicleModel}
-              onChangeText={setVehicleModel}
-            />
+            <TextInput style={[styles.input, styles.halfInput]} placeholder="Marca" placeholderTextColor="#6b7280" value={vehicleBrand} onChangeText={setVehicleBrand} />
+            <TextInput style={[styles.input, styles.halfInput]} placeholder="Modelo" placeholderTextColor="#6b7280" value={vehicleModel} onChangeText={setVehicleModel} />
           </View>
           <VehicleTypeSelector selected={vehicleType} onSelect={setVehicleType} />
         </View>
 
         {/* Serviços — agrupados por categoria */}
         <View style={styles.section}>
-          <View style={styles.sectionTitleRow}>
-            <Text style={styles.sectionTitle}>{servicesSectionTitle}</Text>
-          </View>
-
+          <Text style={styles.sectionTitle}>{servicesSectionTitle}</Text>
           {CATEGORY_ORDER.map(category => {
             const catServices = servicesByCategory[category];
             if (!catServices?.length) return null;
@@ -211,9 +194,7 @@ export default function NewBudgetScreen() {
               <View key={category} style={styles.categoryGroup}>
                 <View style={styles.categoryHeader}>
                   <View style={styles.categoryAccent} />
-                  <Text style={styles.categoryLabel}>
-                    {CATEGORY_LABELS[category]}
-                  </Text>
+                  <Text style={styles.categoryLabel}>{CATEGORY_LABELS[category]}</Text>
                 </View>
                 {catServices.map(service => (
                   <ServiceItem
@@ -284,164 +265,39 @@ export default function NewBudgetScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0a0a0a'
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#1f1f1f'
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#1f1f1f',
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  brandName: {
-    fontSize: 14,
-    fontWeight: '900',
-    color: '#ef4444',
-    letterSpacing: 2,
-    marginBottom: 4
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#ffffff'
-  },
-  content: {
-    padding: 20,
-    paddingBottom: 100
-  },
-  section: {
-    marginBottom: 28
-  },
-  sectionTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#ffffff',
-    marginBottom: 12
-  },
+  container: { flex: 1, backgroundColor: '#0a0a0a' },
+  header: { paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#1f1f1f' },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  backButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#1f1f1f', justifyContent: 'center', alignItems: 'center' },
+  brandName: { fontSize: 14, fontWeight: '900', color: '#ef4444', letterSpacing: 2, marginBottom: 4 },
+  title: { fontSize: 28, fontWeight: '800', color: '#ffffff' },
+  content: { padding: 20, paddingBottom: 100 },
+  section: { marginBottom: 28 },
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#ffffff', marginBottom: 12 },
 
   /* Category grouping */
-  categoryGroup: {
-    marginBottom: 12
-  },
-  categoryHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 8
-  },
-  categoryAccent: {
-    width: 3,
-    height: 13,
-    backgroundColor: '#ef4444',
-    borderRadius: 2
-  },
-  categoryLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#6b7280',
-    textTransform: 'uppercase',
-    letterSpacing: 1
-  },
+  categoryGroup: { marginBottom: 12 },
+  categoryHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+  categoryAccent: { width: 3, height: 13, backgroundColor: '#ef4444', borderRadius: 2 },
+  categoryLabel: { fontSize: 11, fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: 1 },
 
   /* Inputs */
-  input: {
-    backgroundColor: '#1f1f1f',
-    borderWidth: 1,
-    borderColor: '#2f2f2f',
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    color: '#ffffff',
-    marginBottom: 12
-  },
-  row: {
-    flexDirection: 'row',
-    gap: 12
-  },
-  halfInput: {
-    flex: 1
-  },
-  textArea: {
-    height: 100,
-    paddingTop: 16
-  },
+  input: { backgroundColor: '#1f1f1f', borderWidth: 1, borderColor: '#2f2f2f', borderRadius: 12, padding: 16, fontSize: 16, color: '#ffffff', marginBottom: 12 },
+  row: { flexDirection: 'row', gap: 12 },
+  halfInput: { flex: 1 },
+  textArea: { height: 100, paddingTop: 16 },
 
   /* Totals */
-  totalsCard: {
-    backgroundColor: '#1f1f1f',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 20,
-    borderWidth: 2,
-    borderColor: '#ef4444'
-  },
-  totalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8
-  },
-  totalLabel: {
-    fontSize: 14,
-    color: '#9ca3af'
-  },
-  totalValue: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#ffffff'
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#2f2f2f',
-    marginVertical: 12
-  },
-  finalLabel: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#ffffff'
-  },
-  finalValue: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#ef4444'
-  },
+  totalsCard: { backgroundColor: '#1f1f1f', borderRadius: 16, padding: 20, marginBottom: 20, borderWidth: 2, borderColor: '#ef4444' },
+  totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  totalLabel: { fontSize: 14, color: '#9ca3af' },
+  totalValue: { fontSize: 16, fontWeight: '600', color: '#ffffff' },
+  divider: { height: 1, backgroundColor: '#2f2f2f', marginVertical: 12 },
+  finalLabel: { fontSize: 18, fontWeight: '700', color: '#ffffff' },
+  finalValue: { fontSize: 28, fontWeight: '800', color: '#ef4444' },
 
   /* Save button */
-  saveButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    backgroundColor: '#ef4444',
-    padding: 18,
-    borderRadius: 12,
-    marginBottom: 20
-  },
-  saveButtonDisabled: {
-    opacity: 0.4
-  },
-  saveButtonText: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#ffffff'
-  }
+  saveButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: '#ef4444', padding: 18, borderRadius: 12, marginBottom: 20 },
+  saveButtonDisabled: { opacity: 0.4 },
+  saveButtonText: { fontSize: 17, fontWeight: '700', color: '#ffffff' }
 });

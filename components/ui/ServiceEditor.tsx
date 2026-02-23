@@ -12,23 +12,23 @@ interface ServiceEditorProps {
 }
 
 export const ServiceEditor = ({ visible, service, onClose, onSave, onDelete }: ServiceEditorProps) => {
-  const [name, setName] = useState(service?.name || '');
-  const [price, setPrice] = useState(service?.basePrice.toString() || '');
+  const [name,        setName]        = useState(service?.name || '');
+  const [price,       setPrice]       = useState(service?.basePrice ? service.basePrice.toFixed(2).replace('.', ',') : '');
   const [description, setDescription] = useState(service?.description || '');
-  const [category, setCategory] = useState<ServiceItem['category']>(service?.category || 'exterior');
+  const [category,    setCategory]    = useState<ServiceItem['category']>(service?.category || 'exterior');
 
   const categories: Array<{ value: ServiceItem['category']; label: string }> = [
-    { value: 'exterior', label: 'Externo' },
-    { value: 'interior', label: 'Interno' },
-    { value: 'protection', label: 'Proteção' },
-    { value: 'detailing', label: 'Detalhamento' }
+    { value: 'exterior',   label: 'Externo'       },
+    { value: 'interior',   label: 'Interno'       },
+    { value: 'protection', label: 'Proteção'      },
+    { value: 'detailing',  label: 'Detalhamento'  }
   ];
 
   React.useEffect(() => {
     if (visible) {
       if (service) {
         setName(service.name);
-        setPrice(service.basePrice.toString());
+        setPrice(service.basePrice.toFixed(2).replace('.', ','));
         setDescription(service.description || '');
         setCategory(service.category);
       } else {
@@ -50,16 +50,13 @@ export const ServiceEditor = ({ visible, service, onClose, onSave, onDelete }: S
       Alert.alert('Preço inválido', 'Digite um preço válido maior que zero');
       return;
     }
-
-    const savedService: ServiceItem = {
-      id: service?.id || `custom-${Date.now()}`,
-      name: name.trim(),
-      basePrice: priceValue,
+    onSave({
+      id:          service?.id || `custom-${Date.now()}`,
+      name:        name.trim(),
+      basePrice:   priceValue,
       category,
       description: description.trim() || undefined
-    };
-
-    onSave(savedService);
+    });
     onClose();
   };
 
@@ -74,12 +71,13 @@ export const ServiceEditor = ({ visible, service, onClose, onSave, onDelete }: S
     <Modal visible={visible} animationType="slide" transparent>
       <View style={styles.overlay}>
         <View style={styles.container}>
+
           <View style={styles.header}>
             <Text style={styles.title}>
               {service ? 'Editar Serviço' : 'Novo Serviço'}
             </Text>
-            <TouchableOpacity onPress={onClose}>
-              <MaterialCommunityIcons name="close" size={24} color="#9ca3af" />
+            <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <MaterialCommunityIcons name="close" size={22} color="#6b7280" />
             </TouchableOpacity>
           </View>
 
@@ -98,7 +96,7 @@ export const ServiceEditor = ({ visible, service, onClose, onSave, onDelete }: S
               style={styles.input}
               value={price}
               onChangeText={setPrice}
-              placeholder="0.00"
+              placeholder="0,00"
               placeholderTextColor="#6b7280"
               keyboardType="decimal-pad"
             />
@@ -108,16 +106,11 @@ export const ServiceEditor = ({ visible, service, onClose, onSave, onDelete }: S
               {categories.map(cat => (
                 <TouchableOpacity
                   key={cat.value}
-                  style={[
-                    styles.categoryButton,
-                    category === cat.value && styles.categoryButtonSelected
-                  ]}
+                  style={[styles.categoryButton, category === cat.value && styles.categoryButtonSelected]}
                   onPress={() => setCategory(cat.value)}
+                  activeOpacity={0.7}
                 >
-                  <Text style={[
-                    styles.categoryText,
-                    category === cat.value && styles.categoryTextSelected
-                  ]}>
+                  <Text style={[styles.categoryText, category === cat.value && styles.categoryTextSelected]}>
                     {cat.label}
                   </Text>
                 </TouchableOpacity>
@@ -139,16 +132,17 @@ export const ServiceEditor = ({ visible, service, onClose, onSave, onDelete }: S
 
           <View style={styles.footer}>
             {service && onDelete && (
-              <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
-                <MaterialCommunityIcons name="delete" size={20} color="#ef4444" />
+              <TouchableOpacity style={styles.deleteButton} onPress={handleDelete} activeOpacity={0.7}>
+                <MaterialCommunityIcons name="delete" size={18} color="#ef4444" />
                 <Text style={styles.deleteButtonText}>Excluir</Text>
               </TouchableOpacity>
             )}
-            <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-              <MaterialCommunityIcons name="check" size={20} color="#ffffff" />
+            <TouchableOpacity style={styles.saveButton} onPress={handleSave} activeOpacity={0.8}>
+              <MaterialCommunityIcons name="check" size={18} color="#ffffff" />
               <Text style={styles.saveButtonText}>Salvar</Text>
             </TouchableOpacity>
           </View>
+
         </View>
       </View>
     </Modal>
@@ -158,11 +152,11 @@ export const ServiceEditor = ({ visible, service, onClose, onSave, onDelete }: S
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
     justifyContent: 'flex-end'
   },
   container: {
-    backgroundColor: '#0a0a0a',
+    backgroundColor: '#0f0f0f',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: '90%',
@@ -178,7 +172,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#1f1f1f'
   },
   title: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '800',
     color: '#ffffff'
   },
@@ -186,11 +180,13 @@ const styles = StyleSheet.create({
     padding: 20
   },
   label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#9ca3af',
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#6b7280',
     marginBottom: 8,
-    marginTop: 16
+    marginTop: 16,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8
   },
   input: {
     backgroundColor: '#1f1f1f',
@@ -227,7 +223,7 @@ const styles = StyleSheet.create({
   categoryText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#9ca3af'
+    color: '#6b7280'
   },
   categoryTextSelected: {
     color: '#ffffff'
@@ -244,7 +240,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 6,
     backgroundColor: '#1f1f1f',
     padding: 16,
     borderRadius: 12,
@@ -252,7 +248,7 @@ const styles = StyleSheet.create({
     borderColor: '#ef4444'
   },
   deleteButtonText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: '#ef4444'
   },
@@ -261,13 +257,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 6,
     backgroundColor: '#ef4444',
     padding: 16,
     borderRadius: 12
   },
   saveButtonText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     color: '#ffffff'
   }
