@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { ServiceItem as ServiceItemType } from '@/types/budget';
 
@@ -7,16 +7,36 @@ interface ServiceItemProps {
   service: ServiceItemType;
   selected: boolean;
   quantity: number;
+  customPrice?: number;
   onToggle: () => void;
   onQuantityChange: (change: number) => void;
+  onPriceChange?: (price: number) => void;
 }
 
-export const ServiceItem = React.memo(({ service, selected, quantity, onToggle, onQuantityChange }: ServiceItemProps) => {
+export const ServiceItem = React.memo(({ service, selected, quantity, customPrice, onToggle, onQuantityChange, onPriceChange }: ServiceItemProps) => {
   const categoryIcons = {
     exterior: 'car-wash',
     interior: 'car-seat',
     protection: 'shield-car',
     detailing: 'auto-fix'
+  };
+
+  const displayPrice = customPrice ?? service.basePrice;
+  const [priceInput, setPriceInput] = useState(displayPrice.toFixed(2).replace('.', ','));
+
+  useEffect(() => {
+    if (selected) {
+      setPriceInput(displayPrice.toFixed(2).replace('.', ','));
+    }
+  }, [selected, displayPrice]);
+
+  const handlePriceBlur = () => {
+    const val = parseFloat(priceInput.replace(',', '.'));
+    if (!isNaN(val) && val > 0) {
+      onPriceChange?.(val);
+    } else {
+      setPriceInput(displayPrice.toFixed(2).replace('.', ','));
+    }
   };
 
   return (
@@ -38,7 +58,20 @@ export const ServiceItem = React.memo(({ service, selected, quantity, onToggle, 
         {service.description && (
           <Text style={styles.description}>{service.description}</Text>
         )}
-        <Text style={styles.price}>R$ {service.basePrice.toFixed(2).replace('.', ',')}</Text>
+        {selected && onPriceChange ? (
+          <View style={styles.priceInputRow}>
+            <Text style={styles.pricePrefix}>R$</Text>
+            <TextInput
+              style={styles.priceInput}
+              value={priceInput}
+              onChangeText={setPriceInput}
+              onBlur={handlePriceBlur}
+              keyboardType="decimal-pad"
+            />
+          </View>
+        ) : (
+          <Text style={styles.price}>R$ {displayPrice.toFixed(2).replace('.', ',')}</Text>
+        )}
       </View>
 
       {selected && (
@@ -105,6 +138,26 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: '#ef4444'
+  },
+  priceInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2
+  },
+  pricePrefix: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#ef4444',
+    marginRight: 4
+  },
+  priceInput: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#ef4444',
+    borderBottomWidth: 1,
+    borderBottomColor: '#ef4444',
+    minWidth: 70,
+    padding: 0
   },
   quantityControls: {
     flexDirection: 'row',

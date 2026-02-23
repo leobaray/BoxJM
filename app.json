@@ -2,6 +2,7 @@
   "expo": {
     "name": "BOX JM",
     "slug": "boxjm",
+    "scheme": "boxjm",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",

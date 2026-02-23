@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, Modal, ScrollView } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, Modal, ScrollView, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { ServiceItem } from '@/types/budget';
 
@@ -25,22 +25,29 @@ export const ServiceEditor = ({ visible, service, onClose, onSave, onDelete }: S
   ];
 
   React.useEffect(() => {
-    if (service) {
-      setName(service.name);
-      setPrice(service.basePrice.toString());
-      setDescription(service.description || '');
-      setCategory(service.category);
-    } else {
-      setName('');
-      setPrice('');
-      setDescription('');
-      setCategory('exterior');
+    if (visible) {
+      if (service) {
+        setName(service.name);
+        setPrice(service.basePrice.toString());
+        setDescription(service.description || '');
+        setCategory(service.category);
+      } else {
+        setName('');
+        setPrice('');
+        setDescription('');
+        setCategory('exterior');
+      }
     }
-  }, [service]);
+  }, [service, visible]);
 
   const handleSave = () => {
-    const priceValue = parseFloat(price);
-    if (!name.trim() || isNaN(priceValue) || priceValue <= 0) {
+    const priceValue = parseFloat(price.replace(',', '.'));
+    if (!name.trim()) {
+      Alert.alert('Campo obrigatório', 'Preencha o nome do serviço');
+      return;
+    }
+    if (isNaN(priceValue) || priceValue <= 0) {
+      Alert.alert('Preço inválido', 'Digite um preço válido maior que zero');
       return;
     }
 

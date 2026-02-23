@@ -23,7 +23,9 @@ export default function NewBudgetScreen() {
   const [vehicleModel, setVehicleModel] = useState('');
   const [vehicleType, setVehicleType] = useState<VehicleType>('medium');
   const [selectedServices, setSelectedServices] = useState<Map<string, number>>(new Map());
+  const [customPrices, setCustomPrices] = useState<Map<string, number>>(new Map());
   const [notes, setNotes] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const isEditMode = !!id;
   const screenTitle = isEditMode ? 'Editar Orçamento' : 'Novo Orçamento';
@@ -40,10 +42,13 @@ export default function NewBudgetScreen() {
         setNotes(budget.notes || '');
         
         const servicesMap = new Map<string, number>();
+        const pricesMap = new Map<string, number>();
         budget.items.forEach(item => {
           servicesMap.set(item.serviceId, item.quantity);
+          pricesMap.set(item.serviceId, item.basePrice);
         });
         setSelectedServices(servicesMap);
+        setCustomPrices(pricesMap);
       }
     }
   }, [id, budgets, isEditMode]);
@@ -60,6 +65,14 @@ export default function NewBudgetScreen() {
     });
   };
 
+  const updatePrice = (serviceId: string, price: number) => {
+    setCustomPrices(prev => {
+      const next = new Map(prev);
+      next.set(serviceId, price);
+      return next;
+    });
+  };
+
   const updateQuantity = (serviceId: string, change: number) => {
     setSelectedServices(prev => {
       const next = new Map(prev);
@@ -71,49 +84,40 @@ export default function NewBudgetScreen() {
   };
 
   const calculateTotal = () => {
-    const items: BudgetItem[] = Array.from(selectedServices.entries()).map(([serviceId, quantity]) => {
-      const service = services.find(s => s.id === serviceId)!;
-      return {
-        serviceId,
-        serviceName: service.name,
-        basePrice: service.basePrice,
-        quantity
-      };
+    const items: BudgetItem[] = Array.from(selectedServices.entries()).flatMap(([serviceId, quantity]) => {
+      const service = services.find(s => s.id === serviceId);
+      if (!service) return [];
+      return [{ serviceId, serviceName: service.name, basePrice: customPrices.get(serviceId) ?? service.basePrice, quantity }];
     });
     return budgetService.calculateBudgetTotal(items, vehicleType);
   };
 
   const handleSave = async () => {
-    // Validação de campos obrigatórios
+    if (saving) return;
+
     if (!clientName.trim()) {
       Alert.alert('Campo obrigatório', 'Preencha o nome do cliente');
       return;
     }
-
     if (!vehicleBrand.trim()) {
       Alert.alert('Campo obrigatório', 'Preencha a marca do veículo');
       return;
     }
-
     if (!vehicleModel.trim()) {
       Alert.alert('Campo obrigatório', 'Preencha o modelo do veículo');
       return;
     }
-
     if (selectedServices.size === 0) {
       Alert.alert('Selecione serviços', 'Adicione pelo menos um serviço ao orçamento');
       return;
     }
 
+    setSaving(true);
     try {
-      const items: BudgetItem[] = Array.from(selectedServices.entries()).map(([serviceId, quantity]) => {
-        const service = services.find(s => s.id === serviceId)!;
-        return {
-          serviceId,
-          serviceName: service.name,
-          basePrice: service.basePrice,
-          quantity
-        };
+      const items: BudgetItem[] = Array.from(selectedServices.entries()).flatMap(([serviceId, quantity]) => {
+        const service = services.find(s => s.id === serviceId);
+        if (!service) return [];
+        return [{ serviceId, serviceName: service.name, basePrice: customPrices.get(serviceId) ?? service.basePrice, quantity }];
       });
 
       const { subtotal, multiplier, total } = budgetService.calculateBudgetTotal(items, vehicleType);
@@ -131,7 +135,6 @@ export default function NewBudgetScreen() {
           total,
           notes: notes.trim()
         });
-
         Alert.alert('Sucesso', 'Orçamento atualizado com sucesso!', [
           { text: 'OK', onPress: () => router.back() }
         ]);
@@ -149,13 +152,14 @@ export default function NewBudgetScreen() {
           status: 'draft',
           notes: notes.trim()
         });
-
         Alert.alert('Sucesso', 'Orçamento criado com sucesso!', [
           { text: 'OK', onPress: () => router.push('/(tabs)') }
         ]);
       }
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível salvar o orçamento');
+      Alert.alert('Erro', 'Não foi possível salvar o orçamento. Verifique sua conexão e tente novamente.');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -226,8 +230,10 @@ export default function NewBudgetScreen() {
               service={service}
               selected={selectedServices.has(service.id)}
               quantity={selectedServices.get(service.id) || 1}
+              customPrice={customPrices.get(service.id)}
               onToggle={() => toggleService(service.id)}
               onQuantityChange={(change) => updateQuantity(service.id, change)}
+              onPriceChange={(price) => updatePrice(service.id, price)}
             />
           ))}
         </View>
@@ -265,13 +271,13 @@ export default function NewBudgetScreen() {
         )}
 
         <TouchableOpacity
-          style={[styles.saveButton, selectedServices.size === 0 && styles.saveButtonDisabled]}
+          style={[styles.saveButton, (selectedServices.size === 0 || saving) && styles.saveButtonDisabled]}
           onPress={handleSave}
-          disabled={selectedServices.size === 0}
+          disabled={selectedServices.size === 0 || saving}
         >
           <MaterialCommunityIcons name="check" size={24} color="#ffffff" />
           <Text style={styles.saveButtonText}>
-            {isEditMode ? 'Salvar Alterações' : 'Criar Orçamento'}
+            {saving ? 'Salvando...' : isEditMode ? 'Salvar Alterações' : 'Criar Orçamento'}
           </Text>
         </TouchableOpacity>
       </ScrollView>

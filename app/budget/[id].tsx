@@ -15,6 +15,8 @@ export default function BudgetDetailScreen() {
   const [budget, setBudget] = useState<Budget | null>(null);
   const [showEditTotalModal, setShowEditTotalModal] = useState(false);
   const [newTotalInput, setNewTotalInput] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const [savingTotal, setSavingTotal] = useState(false);
 
   useEffect(() => {
     const found = budgets.find(b => b.id === id);
@@ -54,16 +56,17 @@ export default function BudgetDetailScreen() {
           text: 'Excluir',
           style: 'destructive',
           onPress: async () => {
+            setDeleting(true);
             try {
-              console.log('Deletando orçamento:', budget.id);
               await deleteBudget(budget.id);
-              console.log('Orçamento deletado com sucesso');
               Alert.alert('Sucesso', 'Orçamento excluído', [
                 { text: 'OK', onPress: () => router.back() }
               ]);
             } catch (error) {
-              console.error('Erro ao deletar orçamento:', error);
-              Alert.alert('Erro', `Não foi possível excluir o orçamento: ${error}`);
+              const message = error instanceof Error ? error.message : 'Tente novamente';
+              Alert.alert('Erro', `Não foi possível excluir o orçamento. ${message}`);
+            } finally {
+              setDeleting(false);
             }
           }
         }
@@ -78,41 +81,45 @@ export default function BudgetDetailScreen() {
   };
 
   const handleSaveNewTotal = async () => {
-    if (!budget) return;
-    
+    if (!budget || savingTotal) return;
+
     const newTotal = parseFloat(newTotalInput.replace(',', '.'));
-    
+
     if (isNaN(newTotal) || newTotal <= 0) {
       Alert.alert('Erro', 'Digite um valor válido maior que zero');
       return;
     }
 
+    if (budget.total === 0 || budget.items.length === 0) {
+      Alert.alert('Erro', 'Não é possível ajustar um orçamento sem valor ou sem serviços');
+      return;
+    }
+
+    setSavingTotal(true);
     try {
-      // Calcular fator de ajuste
       const adjustmentFactor = newTotal / budget.total;
-      
-      // Ajustar preços dos serviços proporcionalmente
+
       const adjustedItems = budget.items.map(item => ({
         ...item,
         basePrice: Math.round(item.basePrice * adjustmentFactor * 100) / 100
       }));
-      
-      // Recalcular subtotal
-      const newSubtotal = adjustedItems.reduce((sum, item) => 
+
+      const newSubtotal = adjustedItems.reduce((sum, item) =>
         sum + (item.basePrice * item.quantity), 0
       );
-      
-      // Atualizar orçamento
+
       await updateBudget(budget.id, {
         items: adjustedItems,
         subtotal: Math.round(newSubtotal * 100) / 100,
         total: Math.round(newTotal * 100) / 100
       });
-      
+
       setShowEditTotalModal(false);
       Alert.alert('Sucesso', 'Valor total atualizado e serviços ajustados proporcionalmente');
     } catch (error) {
       Alert.alert('Erro', 'Não foi possível atualizar o valor');
+    } finally {
+      setSavingTotal(false);
     }
   };
 
@@ -207,8 +214,8 @@ Obrigado pela preferência! 🚗✨
           <TouchableOpacity onPress={handleEdit} style={styles.editButton}>
             <MaterialCommunityIcons name="pencil" size={24} color="#3b82f6" />
           </TouchableOpacity>
-          <TouchableOpacity onPress={handleDelete} style={styles.deleteButton}>
-            <MaterialCommunityIcons name="delete" size={24} color="#ef4444" />
+          <TouchableOpacity onPress={handleDelete} style={styles.deleteButton} disabled={deleting}>
+            <MaterialCommunityIcons name="delete" size={24} color={deleting ? '#6b7280' : '#ef4444'} />
           </TouchableOpacity>
         </View>
       </View>
@@ -358,10 +365,11 @@ Obrigado pela preferência! 🚗✨
                 <Text style={styles.cancelButtonText}>Cancelar</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.modalButton, styles.saveButton]}
+                style={[styles.modalButton, styles.saveButton, savingTotal && { opacity: 0.6 }]}
                 onPress={handleSaveNewTotal}
+                disabled={savingTotal}
               >
-                <Text style={styles.saveButtonText}>Salvar</Text>
+                <Text style={styles.saveButtonText}>{savingTotal ? 'Salvando...' : 'Salvar'}</Text>
               </TouchableOpacity>
             </View>
           </View>

@@ -98,7 +98,7 @@ export const VEHICLE_MULTIPLIERS: VehicleMultiplier[] = [
     type: 'medium',
     label: 'Médio',
     multiplier: 1.2,
-    icon: 'car-sedan'
+    icon: 'car'
   },
   {
     type: 'large',
