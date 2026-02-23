@@ -2,6 +2,10 @@
   "name": "onspace-app",
   "main": "index.js",
   "version": "1.0.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/leobarayoyoyo1-creator/BoxJM.git"
+  },
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
@@ -21,6 +25,13 @@
     "directories": {
       "output": "dist-electron"
     },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "leobarayoyoyo1-creator",
+        "repo": "BoxJM"
+      }
+    ],
     "files": [
       "dist/**/*",
       "main.js",
