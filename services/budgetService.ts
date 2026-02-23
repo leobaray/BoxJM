@@ -1,15 +1,14 @@
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseClient } from '@/template';
 import { Budget, BudgetItem, VehicleType } from '@/types/budget';
 import { VEHICLE_MULTIPLIERS } from '@/constants/services';
 
-// Configuração do cliente Supabase
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
+// Usar o cliente Supabase pré-configurado do template
+const getClient = () => getSupabaseClient();
 
 export const budgetService = {
   async getAllBudgets(): Promise<Budget[]> {
     try {
+      const supabase = getClient();
       const { data, error } = await supabase
         .from('budgets')
         .select('*')
@@ -48,6 +47,7 @@ export const budgetService = {
 
   async getBudgetById(id: string): Promise<Budget | null> {
     try {
+      const supabase = getClient();
       const { data, error } = await supabase
         .from('budgets')
         .select('*')
@@ -101,6 +101,7 @@ export const budgetService = {
         notes: budget.notes || null
       };
 
+      const supabase = getClient();
       const { data, error } = await supabase
         .from('budgets')
         .insert([newBudget])
@@ -150,6 +151,7 @@ export const budgetService = {
       if (updates.status !== undefined) dbUpdates.status = updates.status;
       if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
 
+      const supabase = getClient();
       const { data, error } = await supabase
         .from('budgets')
         .update(dbUpdates)
@@ -186,6 +188,7 @@ export const budgetService = {
 
   async deleteBudget(id: string): Promise<void> {
     try {
+      const supabase = getClient();
       console.log('=== Service: INICIANDO DELETE ===');
       console.log('ID recebido:', id);
       console.log('Tipo do ID:', typeof id);
