@@ -1,14 +1,13 @@
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseClient } from '@/template';
 import { ServiceItem } from '@/types/budget';
 
-// Configuração do cliente Supabase
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
+// Usar o cliente Supabase pré-configurado do template
+const getClient = () => getSupabaseClient();
 
 export const catalogService = {
   async getCustomServices(): Promise<ServiceItem[]> {
     try {
+      const supabase = getClient();
       const { data, error } = await supabase
         .from('custom_services')
         .select('*')
@@ -39,6 +38,7 @@ export const catalogService = {
 
   async saveCustomService(service: ServiceItem): Promise<ServiceItem> {
     try {
+      const supabase = getClient();
       const dbService = {
         id: service.id,
         name: service.name,
@@ -75,6 +75,7 @@ export const catalogService = {
 
   async deleteCustomService(id: string): Promise<void> {
     try {
+      const supabase = getClient();
       const { error } = await supabase
         .from('custom_services')
         .delete()
@@ -92,6 +93,7 @@ export const catalogService = {
 
   async updateServicePrice(id: string, newPrice: number): Promise<void> {
     try {
+      const supabase = getClient();
       const { error } = await supabase
         .from('custom_services')
         .update({ base_price: newPrice })
