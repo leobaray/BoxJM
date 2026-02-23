@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, TextInput, ScrollView, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -9,6 +9,9 @@ import { VehicleTypeSelector } from '@/components/ui/VehicleTypeSelector';
 import { ServiceItem } from '@/components/ui/ServiceItem';
 import { VehicleType, BudgetItem } from '@/types/budget';
 import { budgetService } from '@/services/budgetService';
+import { CATEGORY_LABELS, VEHICLE_MULTIPLIERS } from '@/constants/services';
+
+const CATEGORY_ORDER = ['exterior', 'interior', 'protection', 'detailing'] as const;
 
 export default function NewBudgetScreen() {
   const insets = useSafeAreaInsets();
@@ -17,17 +20,17 @@ export default function NewBudgetScreen() {
   const { budgets, createBudget, updateBudget } = useBudgets();
   const { services } = useCatalog();
 
-  const [clientName, setClientName] = useState('');
-  const [clientPhone, setClientPhone] = useState('');
-  const [vehicleBrand, setVehicleBrand] = useState('');
-  const [vehicleModel, setVehicleModel] = useState('');
-  const [vehicleType, setVehicleType] = useState<VehicleType>('medium');
+  const [clientName, setClientName]       = useState('');
+  const [clientPhone, setClientPhone]     = useState('');
+  const [vehicleBrand, setVehicleBrand]   = useState('');
+  const [vehicleModel, setVehicleModel]   = useState('');
+  const [vehicleType, setVehicleType]     = useState<VehicleType>('medium');
   const [selectedServices, setSelectedServices] = useState<Map<string, number>>(new Map());
-  const [customPrices, setCustomPrices] = useState<Map<string, number>>(new Map());
-  const [notes, setNotes] = useState('');
-  const [saving, setSaving] = useState(false);
+  const [customPrices, setCustomPrices]   = useState<Map<string, number>>(new Map());
+  const [notes, setNotes]                 = useState('');
+  const [saving, setSaving]               = useState(false);
 
-  const isEditMode = !!id;
+  const isEditMode  = !!id;
   const screenTitle = isEditMode ? 'Editar Orçamento' : 'Novo Orçamento';
 
   useEffect(() => {
@@ -40,9 +43,9 @@ export default function NewBudgetScreen() {
         setVehicleModel(budget.vehicleModel);
         setVehicleType(budget.vehicleType);
         setNotes(budget.notes || '');
-        
+
         const servicesMap = new Map<string, number>();
-        const pricesMap = new Map<string, number>();
+        const pricesMap   = new Map<string, number>();
         budget.items.forEach(item => {
           servicesMap.set(item.serviceId, item.quantity);
           pricesMap.set(item.serviceId, item.basePrice);
@@ -56,11 +59,8 @@ export default function NewBudgetScreen() {
   const toggleService = (serviceId: string) => {
     setSelectedServices(prev => {
       const next = new Map(prev);
-      if (next.has(serviceId)) {
-        next.delete(serviceId);
-      } else {
-        next.set(serviceId, 1);
-      }
+      if (next.has(serviceId)) { next.delete(serviceId); }
+      else                     { next.set(serviceId, 1); }
       return next;
     });
   };
@@ -75,10 +75,9 @@ export default function NewBudgetScreen() {
 
   const updateQuantity = (serviceId: string, change: number) => {
     setSelectedServices(prev => {
-      const next = new Map(prev);
-      const current = next.get(serviceId) || 1;
-      const newQuantity = Math.max(1, current + change);
-      next.set(serviceId, newQuantity);
+      const next     = new Map(prev);
+      const current  = next.get(serviceId) || 1;
+      next.set(serviceId, Math.max(1, current + change));
       return next;
     });
   };
@@ -94,23 +93,10 @@ export default function NewBudgetScreen() {
 
   const handleSave = async () => {
     if (saving) return;
-
-    if (!clientName.trim()) {
-      Alert.alert('Campo obrigatório', 'Preencha o nome do cliente');
-      return;
-    }
-    if (!vehicleBrand.trim()) {
-      Alert.alert('Campo obrigatório', 'Preencha a marca do veículo');
-      return;
-    }
-    if (!vehicleModel.trim()) {
-      Alert.alert('Campo obrigatório', 'Preencha o modelo do veículo');
-      return;
-    }
-    if (selectedServices.size === 0) {
-      Alert.alert('Selecione serviços', 'Adicione pelo menos um serviço ao orçamento');
-      return;
-    }
+    if (!clientName.trim())  { Alert.alert('Campo obrigatório', 'Preencha o nome do cliente');     return; }
+    if (!vehicleBrand.trim()){ Alert.alert('Campo obrigatório', 'Preencha a marca do veículo');    return; }
+    if (!vehicleModel.trim()){ Alert.alert('Campo obrigatório', 'Preencha o modelo do veículo');   return; }
+    if (selectedServices.size === 0) { Alert.alert('Selecione serviços', 'Adicione pelo menos um serviço ao orçamento'); return; }
 
     setSaving(true);
     try {
@@ -119,44 +105,16 @@ export default function NewBudgetScreen() {
         if (!service) return [];
         return [{ serviceId, serviceName: service.name, basePrice: customPrices.get(serviceId) ?? service.basePrice, quantity }];
       });
-
       const { subtotal, multiplier, total } = budgetService.calculateBudgetTotal(items, vehicleType);
 
       if (isEditMode && id) {
-        await updateBudget(id as string, {
-          clientName: clientName.trim(),
-          clientPhone: clientPhone.trim(),
-          vehicleBrand: vehicleBrand.trim(),
-          vehicleModel: vehicleModel.trim(),
-          vehicleType,
-          items,
-          subtotal,
-          multiplier,
-          total,
-          notes: notes.trim()
-        });
-        Alert.alert('Sucesso', 'Orçamento atualizado com sucesso!', [
-          { text: 'OK', onPress: () => router.back() }
-        ]);
+        await updateBudget(id as string, { clientName: clientName.trim(), clientPhone: clientPhone.trim(), vehicleBrand: vehicleBrand.trim(), vehicleModel: vehicleModel.trim(), vehicleType, items, subtotal, multiplier, total, notes: notes.trim() });
+        Alert.alert('Sucesso', 'Orçamento atualizado com sucesso!', [{ text: 'OK', onPress: () => router.back() }]);
       } else {
-        await createBudget({
-          clientName: clientName.trim(),
-          clientPhone: clientPhone.trim(),
-          vehicleBrand: vehicleBrand.trim(),
-          vehicleModel: vehicleModel.trim(),
-          vehicleType,
-          items,
-          subtotal,
-          multiplier,
-          total,
-          status: 'draft',
-          notes: notes.trim()
-        });
-        Alert.alert('Sucesso', 'Orçamento criado com sucesso!', [
-          { text: 'OK', onPress: () => router.push('/(tabs)') }
-        ]);
+        await createBudget({ clientName: clientName.trim(), clientPhone: clientPhone.trim(), vehicleBrand: vehicleBrand.trim(), vehicleModel: vehicleModel.trim(), vehicleType, items, subtotal, multiplier, total, status: 'draft', notes: notes.trim() });
+        Alert.alert('Sucesso', 'Orçamento criado com sucesso!', [{ text: 'OK', onPress: () => router.push('/(tabs)') }]);
       }
-    } catch (error) {
+    } catch {
       Alert.alert('Erro', 'Não foi possível salvar o orçamento. Verifique sua conexão e tente novamente.');
     } finally {
       setSaving(false);
@@ -164,6 +122,21 @@ export default function NewBudgetScreen() {
   };
 
   const { subtotal, multiplier, total } = calculateTotal();
+
+  const vehicleLabel = VEHICLE_MULTIPLIERS.find(v => v.type === vehicleType)?.label ?? vehicleType;
+
+  const servicesByCategory = useMemo(() => {
+    return services.reduce((acc, service) => {
+      if (!acc[service.category]) acc[service.category] = [];
+      acc[service.category].push(service);
+      return acc;
+    }, {} as Record<string, typeof services>);
+  }, [services]);
+
+  const selectedCount = selectedServices.size;
+  const servicesSectionTitle = selectedCount > 0
+    ? `Serviços  ·  ${selectedCount} selecionado${selectedCount > 1 ? 's' : ''}`
+    : 'Serviços';
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -182,6 +155,8 @@ export default function NewBudgetScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+
+        {/* Dados do Cliente */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Dados do Cliente</Text>
           <TextInput
@@ -201,6 +176,7 @@ export default function NewBudgetScreen() {
           />
         </View>
 
+        {/* Veículo */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Veículo</Text>
           <View style={styles.row}>
@@ -222,22 +198,41 @@ export default function NewBudgetScreen() {
           <VehicleTypeSelector selected={vehicleType} onSelect={setVehicleType} />
         </View>
 
+        {/* Serviços — agrupados por categoria */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Serviços</Text>
-          {services.map(service => (
-            <ServiceItem
-              key={service.id}
-              service={service}
-              selected={selectedServices.has(service.id)}
-              quantity={selectedServices.get(service.id) || 1}
-              customPrice={customPrices.get(service.id)}
-              onToggle={() => toggleService(service.id)}
-              onQuantityChange={(change) => updateQuantity(service.id, change)}
-              onPriceChange={(price) => updatePrice(service.id, price)}
-            />
-          ))}
+          <View style={styles.sectionTitleRow}>
+            <Text style={styles.sectionTitle}>{servicesSectionTitle}</Text>
+          </View>
+
+          {CATEGORY_ORDER.map(category => {
+            const catServices = servicesByCategory[category];
+            if (!catServices?.length) return null;
+            return (
+              <View key={category} style={styles.categoryGroup}>
+                <View style={styles.categoryHeader}>
+                  <View style={styles.categoryAccent} />
+                  <Text style={styles.categoryLabel}>
+                    {CATEGORY_LABELS[category]}
+                  </Text>
+                </View>
+                {catServices.map(service => (
+                  <ServiceItem
+                    key={service.id}
+                    service={service}
+                    selected={selectedServices.has(service.id)}
+                    quantity={selectedServices.get(service.id) || 1}
+                    customPrice={customPrices.get(service.id)}
+                    onToggle={() => toggleService(service.id)}
+                    onQuantityChange={(change) => updateQuantity(service.id, change)}
+                    onPriceChange={(price) => updatePrice(service.id, price)}
+                  />
+                ))}
+              </View>
+            );
+          })}
         </View>
 
+        {/* Observações */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Observações</Text>
           <TextInput
@@ -252,34 +247,37 @@ export default function NewBudgetScreen() {
           />
         </View>
 
+        {/* Totais */}
         {selectedServices.size > 0 && (
           <View style={styles.totalsCard}>
             <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>Subtotal:</Text>
+              <Text style={styles.totalLabel}>Subtotal</Text>
               <Text style={styles.totalValue}>R$ {subtotal.toFixed(2).replace('.', ',')}</Text>
             </View>
             <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>Multiplicador ({vehicleType}):</Text>
+              <Text style={styles.totalLabel}>Multiplicador ({vehicleLabel})</Text>
               <Text style={styles.totalValue}>x{multiplier.toFixed(1)}</Text>
             </View>
             <View style={styles.divider} />
             <View style={styles.totalRow}>
-              <Text style={styles.finalLabel}>Total:</Text>
+              <Text style={styles.finalLabel}>Total</Text>
               <Text style={styles.finalValue}>R$ {total.toFixed(2).replace('.', ',')}</Text>
             </View>
           </View>
         )}
 
+        {/* Botão salvar */}
         <TouchableOpacity
           style={[styles.saveButton, (selectedServices.size === 0 || saving) && styles.saveButtonDisabled]}
           onPress={handleSave}
           disabled={selectedServices.size === 0 || saving}
         >
-          <MaterialCommunityIcons name="check" size={24} color="#ffffff" />
+          <MaterialCommunityIcons name="check" size={22} color="#ffffff" />
           <Text style={styles.saveButtonText}>
             {saving ? 'Salvando...' : isEditMode ? 'Salvar Alterações' : 'Criar Orçamento'}
           </Text>
         </TouchableOpacity>
+
       </ScrollView>
     </View>
   );
@@ -326,7 +324,12 @@ const styles = StyleSheet.create({
     paddingBottom: 100
   },
   section: {
-    marginBottom: 24
+    marginBottom: 28
+  },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16
   },
   sectionTitle: {
     fontSize: 18,
@@ -334,6 +337,32 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     marginBottom: 12
   },
+
+  /* Category grouping */
+  categoryGroup: {
+    marginBottom: 12
+  },
+  categoryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8
+  },
+  categoryAccent: {
+    width: 3,
+    height: 13,
+    backgroundColor: '#ef4444',
+    borderRadius: 2
+  },
+  categoryLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#6b7280',
+    textTransform: 'uppercase',
+    letterSpacing: 1
+  },
+
+  /* Inputs */
   input: {
     backgroundColor: '#1f1f1f',
     borderWidth: 1,
@@ -355,6 +384,8 @@ const styles = StyleSheet.create({
     height: 100,
     paddingTop: 16
   },
+
+  /* Totals */
   totalsCard: {
     backgroundColor: '#1f1f1f',
     borderRadius: 16,
@@ -393,21 +424,23 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#ef4444'
   },
+
+  /* Save button */
   saveButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
+    gap: 10,
     backgroundColor: '#ef4444',
     padding: 18,
     borderRadius: 12,
     marginBottom: 20
   },
   saveButtonDisabled: {
-    opacity: 0.5
+    opacity: 0.4
   },
   saveButtonText: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '700',
     color: '#ffffff'
   }
