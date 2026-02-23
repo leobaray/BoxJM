@@ -62,10 +62,12 @@ export default function ServicesScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <View>
-          <Text style={styles.brandName}>BOX JM</Text>
-          <Text style={styles.title}>Catálogo</Text>
-          <Text style={styles.subtitle}>Serviços disponíveis</Text>
+        <View style={styles.logoRow}>
+          <View style={styles.logoAccentBar} />
+          <View>
+            <Text style={styles.brandName}>BOX JM</Text>
+            <Text style={styles.title}>Catálogo</Text>
+          </View>
         </View>
         <TouchableOpacity style={styles.addButton} onPress={handleCreateNew}>
           <MaterialCommunityIcons name="plus" size={24} color="#ffffff" />
@@ -153,26 +155,32 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: '#1f1f1f'
   },
+  logoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14
+  },
+  logoAccentBar: {
+    width: 3,
+    height: 40,
+    backgroundColor: '#ef4444',
+    borderRadius: 2
+  },
   brandName: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '900',
     color: '#ef4444',
-    letterSpacing: 2,
-    marginBottom: 4
+    letterSpacing: 2.5,
+    marginBottom: 3
   },
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '800',
     color: '#ffffff'
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#9ca3af',
-    marginTop: 2
   },
   addButton: {
     width: 44,

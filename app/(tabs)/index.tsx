@@ -134,14 +134,13 @@ export default function HomeScreen() {
 
       {/* ── Header ── */}
       <View style={styles.header}>
-        <View>
-          <Text style={styles.brandName}>BOX JM</Text>
-          <Text style={styles.title}>Orçamentos</Text>
-          <Text style={styles.subtitle}>Gerencie seus trabalhos</Text>
+        <View style={styles.logoRow}>
+          <View style={styles.logoAccentBar} />
+          <View>
+            <Text style={styles.brandName}>BOX JM</Text>
+            <Text style={styles.title}>Orçamentos</Text>
+          </View>
         </View>
-        <TouchableOpacity style={styles.refreshButton} onPress={handleRefresh}>
-          <MaterialCommunityIcons name="refresh" size={22} color="#ef4444" />
-        </TouchableOpacity>
       </View>
 
       {/* ── Search + Filters ── */}
@@ -276,38 +275,38 @@ const styles = StyleSheet.create({
 
   /* Header */
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: '#1f1f1f'
   },
+  logoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14
+  },
+  logoAccentBar: {
+    width: 3,
+    height: 40,
+    backgroundColor: '#ef4444',
+    borderRadius: 2
+  },
   brandName: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '900',
     color: '#ef4444',
-    letterSpacing: 2,
-    marginBottom: 4
+    letterSpacing: 2.5,
+    marginBottom: 3
   },
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '800',
     color: '#ffffff'
   },
   subtitle: {
-    fontSize: 14,
-    color: '#9ca3af',
+    fontSize: 13,
+    color: '#6b7280',
     marginTop: 2
-  },
-  refreshButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#1f1f1f',
-    justifyContent: 'center',
-    alignItems: 'center'
   },
 
   /* Search + Filters */

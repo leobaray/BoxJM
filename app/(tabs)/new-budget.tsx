@@ -158,9 +158,12 @@ export default function NewBudgetScreen() {
               <MaterialCommunityIcons name="arrow-left" size={24} color="#ffffff" />
             </TouchableOpacity>
           )}
-          <View>
-            <Text style={styles.brandName}>BOX JM</Text>
-            <Text style={styles.title}>{screenTitle}</Text>
+          <View style={styles.logoRow}>
+            <View style={styles.logoAccentBar} />
+            <View>
+              <Text style={styles.brandName}>BOX JM</Text>
+              <Text style={styles.title}>{screenTitle}</Text>
+            </View>
           </View>
         </View>
       </View>
@@ -266,11 +269,13 @@ export default function NewBudgetScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0a0a0a' },
-  header: { paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#1f1f1f' },
+  header: { paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#1f1f1f' },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   backButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#1f1f1f', justifyContent: 'center', alignItems: 'center' },
-  brandName: { fontSize: 14, fontWeight: '900', color: '#ef4444', letterSpacing: 2, marginBottom: 4 },
-  title: { fontSize: 28, fontWeight: '800', color: '#ffffff' },
+  logoRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  logoAccentBar: { width: 3, height: 40, backgroundColor: '#ef4444', borderRadius: 2 },
+  brandName: { fontSize: 13, fontWeight: '900', color: '#ef4444', letterSpacing: 2.5, marginBottom: 3 },
+  title: { fontSize: 26, fontWeight: '800', color: '#ffffff' },
   content: { padding: 20, paddingBottom: 100 },
   section: { marginBottom: 28 },
   sectionTitle: { fontSize: 18, fontWeight: '700', color: '#ffffff', marginBottom: 12 },
