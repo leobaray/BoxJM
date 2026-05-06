@@ -1,0 +1,73 @@
+name: boxjm
+description: BOX JM - Orçamentos de estética automotiva
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+  flutter: ">=3.22.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State management
+  flutter_riverpod: ^2.5.1
+
+  # Routing
+  go_router: ^14.2.0
+
+  # Backend
+  supabase_flutter: ^2.5.6
+
+  # Offline / storage
+  shared_preferences: ^2.2.3
+  connectivity_plus: ^6.0.3
+
+  # Utils
+  uuid: ^4.4.0
+  intl: ^0.19.0
+  share_plus: ^11.1.0
+  flutter_dotenv: ^5.1.0
+  pdf: ^3.11.1
+  printing: ^5.13.2
+
+dev_dependencies:
+  flutter_lints: ^4.0.0
+  flutter_test:
+    sdk: flutter
+  flutter_launcher_icons: ^0.14.1
+  flutter_native_splash: ^2.4.1
+  image: ^4.2.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - .env
+    - assets/icon/app_icon.png
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter.ttf
+
+# ── App icon ────────────────────────────────────────────────────────────
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/app_icon.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/icon/app_icon_foreground.png"
+  remove_alpha_ios: true
+
+# ── Splash screen ──────────────────────────────────────────────────────
+# Android 12+ tem safe-zone circular de ~66% do canvas — por isso usamos
+# uma composicao empilhada (BOX / JM) so pra esse caso. No resto (iOS +
+# Android <12) o splash e tela cheia e mostra a wordmark horizontal.
+flutter_native_splash:
+  color: "#FFFFFF"
+  image: "assets/icon/splash_logo.png"
+  android_12:
+    image: "assets/icon/splash_logo_android12.png"
+    color: "#FFFFFF"
+  ios: true
+  android: true
